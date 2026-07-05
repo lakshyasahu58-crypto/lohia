@@ -1,0 +1,218 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lohia Arogya - Clinic Finder</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            background-color: #f4f6f9; 
+            font-family: 'Poppins', sans-serif; 
+            color: #333;
+        }
+        .hero-section { 
+            background: linear-gradient(135deg, #1e3c72, #2a5298); 
+            color: white; 
+            padding: 35px 20px; 
+            border-bottom-left-radius: 24px; 
+            border-bottom-right-radius: 24px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .search-card {
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+            margin-top: -20px;
+        }
+        .clinic-card { 
+            background: white; 
+            border-radius: 16px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
+            border: 1px solid rgba(0,0,0,0.05); 
+            margin-bottom: 20px; 
+            transition: transform 0.2s ease;
+        }
+        .btn-map { 
+            background: #198754; 
+            color: white; 
+            font-weight: 600; 
+            border-radius: 10px;
+            padding: 10px;
+            border: none;
+        }
+        .btn-map:hover { background: #146c43; color: white; }
+        .btn-gps {
+            background-color: #0d6efd;
+            color: white;
+            font-weight: 600;
+            border-radius: 10px;
+            font-size: 1.1rem;
+        }
+        .btn-gps:hover { background-color: #0b5ed7; color: white; }
+        .badge-subsidy {
+            background-color: #ffc107;
+            color: #000;
+            font-weight: 600;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        .distance-badge {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hero-section text-center">
+        <h2 class="fw-bold mb-1">Lohia Arogya Clinic Finder</h2>
+        <p class="mb-2 opacity-75 small">Bringing Subsidized Healthcare Across Kanpur</p>
+        <div class="badge-subsidy px-3 py-2 mt-2 fs-6 shadow-sm">
+            🩺 परामर्श + 1 हफ्ते की दवा = सिर्फ ₹10
+        </div>
+    </div>
+
+    <div class="container mb-4">
+        <div class="card search-card p-4 bg-white text-center">
+            <h5 class="fw-bold text-secondary mb-3">Find the Nearest Clinic to You</h5>
+            <button class="btn btn-gps btn-lg py-3 px-4 w-100 shadow-sm" onclick="getLocation()" style="max-width: 500px; margin: 0 auto; display: block;">
+                📍 Use My Current Location
+            </button>
+        </div>
+    </div>
+
+    <div class="container mb-3 text-center">
+        <div id="resultsCount" class="text-muted small px-1 fw-medium">Loading clinics...</div>
+    </div>
+
+    <div class="container">
+        <div id="clinicsContainer"></div>
+    </div>
+
+    <script>
+        // Database with all 24 clinics
+        // Note: I added the real names and maps links you provided. 
+        // Please update the 'address', 'lat', and 'lng' for the new ones when you get time!
+        const clinicsData = [
+            { name: "Lohia Arogya - Barra", address: "📍 Near Andha Kua Chauraha, Barra, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.google.com/?q=Barra+Kanpur", lat: 26.4190, lng: 80.3060 },
+            { name: "Lohia Arogya - Kakadeo", address: "📍 117/N/68, Near Devki Cinema Chauraha, Kakadeo, Kanpur", timings: "☀️ 09:00 AM - 12:00 PM | 🌙 4:00 PM - 6:00 PM", mapsUrl: "https://maps.google.com/?q=Kakadeo+Kanpur", lat: 26.4786, lng: 80.3015 },
+            { name: "Lohia Arogya - Kidwai Nagar", address: "📍 Plot 42, Near Deep Cinema Square, Kidwai Nagar, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/T9LRHpfcE9kV2nxJ9", lat: 26.4312, lng: 80.3374 },
+            { name: "Lohia Arogya - Panki", address: "📍 Sector 3, Near Main Panki Temple Road, Kanpur", timings: "☀️ 09:00 AM - 01:00 PM (Sunday Closed)", mapsUrl: "https://maps.google.com/?q=Panki+Kanpur", lat: 26.4770, lng: 80.2443 },
+            { name: "Lohia Arogya - Jajmau", address: "📍 Near Lal Bangla Market, Asharfabad Road, Jajmau, Kanpur", timings: "☀️ 10:00 AM - 02:00 PM", mapsUrl: "https://maps.google.com/?q=Jajmau+Kanpur", lat: 26.4604, lng: 80.3934 },
+            { name: "Lohia Arogya - Nankari", address: "📍 Nankari, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/8gH4pBZjMwtp1qer8", lat: 26.5050, lng: 80.2500 },
+            { name: "Lohia Arogya - Guba Garden", address: "📍 Guba Garden, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/sFdvs8b4bC7t2V6e6", lat: 26.5000, lng: 80.2600 },
+            { name: "Lohia Arogya - Dada Nagar", address: "📍 Dada Nagar, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/mMCxgfoNaWJs1Tyq6", lat: 26.4370, lng: 80.3010 },
+            { name: "Lohia Arogya - CTI Govind Nagar", address: "📍 CTI Govind Nagar, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/QJJyQqLwPgYDWoke6", lat: 26.4420, lng: 80.3160 },
+            { name: "Lohia Arogya - Mandhana", address: "📍 Mandhana, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/otLQX3kxzg2ompts8", lat: 26.5400, lng: 80.2000 },
+            { name: "Lohia Arogya - Maswanpur", address: "📍 Maswanpur, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/Qtrh2Wg192dSJbGq7", lat: 26.4800, lng: 80.2800 },
+            { name: "Lohia Arogya - Lajpat Nagar", address: "📍 Lajpat Nagar, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/fU8ZGbTryNMaJTfK8", lat: 26.4630, lng: 80.3150 },
+            { name: "Lohia Arogya - Karamchari Nagar PAC Mod", address: "📍 Karamchari Nagar PAC Mod, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/JBZqAW4vrm8cXX127", lat: 26.4600, lng: 80.2850 },
+            { name: "Lohia Arogya - Babu Purwa", address: "📍 Babu Purwa, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/2PfYUt9ZAkYz3ci66", lat: 26.4350, lng: 80.3420 },
+            { name: "Lohia Arogya - Targhar", address: "📍 Targhar, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/i1z731ws8FhZ8AGh6", lat: 26.4650, lng: 80.3500 },
+            { name: "Lohia Arogya - Khalasi Line", address: "📍 Khalasi Line, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/YG6Q55EL5qUuTd5B6", lat: 26.4750, lng: 80.3350 },
+            { name: "Lohia Arogya - Basmandi", address: "📍 Basmandi, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/jJt8D2UgAVPUDcsG7", lat: 26.4550, lng: 80.3400 },
+            { name: "Lohia Arogya - Shyam Nagar", address: "📍 Shyam Nagar, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/8HypmuT1GfqF7Dni9", lat: 26.4250, lng: 80.3700 },
+            { name: "Lohia Arogya - Juhi Kalan", address: "📍 Juhi Kalan, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/tu45X4GeawNPeJfe7", lat: 26.4400, lng: 80.3300 },
+            { name: "Lohia Arogya - Srinagar", address: "📍 Srinagar, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/6oWqBGYha4DwvkvJ6", lat: 26.4500, lng: 80.3300 },
+            { name: "Lohia Arogya - Gumti 5", address: "📍 Gumti No. 5, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/rnashuSKK1oVSrSt9", lat: 26.4680, lng: 80.3180 },
+            { name: "Lohia Arogya - Yashoda Nagar", address: "📍 Yashoda Nagar, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/MFvo6d28QgNbXCjV9", lat: 26.4100, lng: 80.3450 },
+            { name: "Lohia Arogya - Usmanpur", address: "📍 Usmanpur, Kanpur", timings: "☀️ 10:00 AM - 1:00 PM | 🌙 5:00 PM - 7:00 PM", mapsUrl: "https://maps.app.goo.gl/n51xoF29ytDWjxXT8", lat: 26.4350, lng: 80.3200 }
+        ];
+
+        // Math to calculate distance between GPS points
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2); 
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+            return R * c; 
+        }
+
+        // Display the clinics
+        function renderClinics(userLat = null, userLng = null) {
+            const container = document.getElementById("clinicsContainer");
+            const countLabel = document.getElementById("resultsCount");
+            container.innerHTML = ""; 
+
+            let listToRender = [...clinicsData];
+
+            if (userLat && userLng) {
+                listToRender.forEach(clinic => {
+                    clinic.distance = calculateDistance(userLat, userLng, clinic.lat, clinic.lng);
+                });
+                // Sort by closest distance
+                listToRender.sort((a, b) => a.distance - b.distance);
+                countLabel.innerHTML = "🟢 GPS Active: Showing nearest clinics to you.";
+            } else {
+                countLabel.innerText = `Showing all ${listToRender.length} clinics in Kanpur.`;
+            }
+
+            listToRender.forEach(clinic => {
+                const distanceString = clinic.distance ? `<span class="distance-badge">📍 ${clinic.distance.toFixed(1)} km away</span>` : '';
+                
+                const cardHTML = `
+                    <div class="card clinic-card p-3 fade-in">
+                        <div class="row align-items-center">
+                            <div class="col-12 col-md-8">
+                                <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                    <h5 class="fw-bold text-primary mb-0">${clinic.name}</h5>
+                                    ${distanceString}
+                                </div>
+                                <p class="text-secondary small mb-2">${clinic.address}</p>
+                                <div class="text-dark small">
+                                    ⏰ <strong>समय:</strong> <span class="text-success fw-medium">${clinic.timings}</span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-4 mt-3 mt-md-0 text-md-end">
+                                <a href="${clinic.mapsUrl}" target="_blank" class="btn btn-map w-100 d-flex align-items-center justify-content-center gap-2">
+                                    🗺️ Navigate (Google Maps)
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHTML;
+            });
+        }
+
+        // GPS Button Logic
+        function getLocation() {
+            const countLabel = document.getElementById("resultsCount");
+            if (navigator.geolocation) {
+                countLabel.innerText = "Requesting GPS permission...";
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        renderClinics(lat, lng);
+                    },
+                    (error) => {
+                        countLabel.innerText = "❌ GPS Error: Location access denied. Please check your browser settings.";
+                    }
+                );
+            } else {
+                countLabel.innerText = "❌ Browser doesn't support automatic location.";
+            }
+        }
+
+        // Load list when page opens
+        window.onload = function() { renderClinics(); };
+    </script>
+</body>
+</html>
