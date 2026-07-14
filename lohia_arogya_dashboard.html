@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lohia Arogya — Survey Intelligence Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#1b2430;
+    --paper:#f6f4ef;
+    --card:#ffffff;
+    --line:#e3ddd0;
+    --brand-red:#b9202e;
+    --brand-red-dark:#8f1522;
+    --brand-blue:#1c3f66;
+    --teal:#1f6f6b;
+    --amber:#c98a2c;
+    --muted:#6b6459;
+    --good:#1f7a4d;
+    --bad:#b9202e;
+    font-family: 'Source Sans 3', 'Segoe UI', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Source Sans 3','Segoe UI',Arial,sans-serif;
+  }
+  @font-face{
+    font-family:'fallback-serif';
+    src:local('Georgia');
+  }
+  h1,h2,h3{
+    font-family:'Iowan Old Style','Georgia',serif;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .topbar{
+    background:linear-gradient(120deg,var(--brand-blue) 0%, #142d47 100%);
+    color:#f4f1e8;
+    padding:22px 28px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:14px;
+    border-bottom:4px solid var(--brand-red);
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .brand-mark{
+    width:44px;height:44px;border-radius:10px;
+    background:var(--brand-red);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Iowan Old Style','Georgia',serif;
+    font-weight:700;font-size:20px;color:#fff;
+    flex-shrink:0;
+  }
+  .brand h1{font-size:22px;color:#fff;}
+  .brand p{margin:2px 0 0;font-size:12.5px;color:#c9d3de;letter-spacing:.03em;}
+  .topbar-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  select, button, input, textarea{
+    font-family:inherit;
+    font-size:14px;
+  }
+  .select-wrap select{
+    padding:9px 14px;
+    border-radius:8px;
+    border:1px solid rgba(255,255,255,.25);
+    background:rgba(255,255,255,.08);
+    color:#fff;
+    min-width:190px;
+  }
+  .select-wrap select option{color:#1b2430;}
+  .btn{
+    padding:9px 16px;
+    border-radius:8px;
+    border:1px solid transparent;
+    cursor:pointer;
+    font-weight:600;
+    transition:transform .08s ease, box-shadow .15s ease;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn-primary{background:var(--brand-red);color:#fff;}
+  .btn-primary:hover{background:var(--brand-red-dark);}
+  .btn-ghost{background:rgba(255,255,255,.08);color:#f4f1e8;border-color:rgba(255,255,255,.3);}
+  .btn-ghost:hover{background:rgba(255,255,255,.18);}
+  .btn-outline{background:#fff;color:var(--brand-blue);border-color:var(--line);}
+  .btn-outline:hover{border-color:var(--brand-blue);}
+  .btn-small{padding:6px 11px;font-size:12.5px;border-radius:6px;}
+
+  main{max-width:1240px;margin:0 auto;padding:26px 24px 60px;}
+
+  .tagline{
+    font-size:13.5px;color:var(--muted);margin:0 0 22px;
+    padding-bottom:14px;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
+  }
+  .tagline b{color:var(--ink)}
+
+  .kpi-row{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px;
+  }
+  @media (max-width:1000px){.kpi-row{grid-template-columns:repeat(2,1fr)}}
+  .kpi{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:16px 16px 14px;position:relative;overflow:hidden;
+  }
+  .kpi::before{
+    content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,var(--brand-red));
+  }
+  .kpi .label{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;}
+  .kpi .value{font-family:'Iowan Old Style','Georgia',serif;font-size:30px;margin-top:6px;line-height:1;}
+  .kpi .sub{font-size:12px;color:var(--muted);margin-top:6px;}
+
+  .grid-2{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;margin-bottom:16px;}
+  @media (max-width:940px){.grid-2{grid-template-columns:1fr;}}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;}
+  @media (max-width:940px){.grid-3{grid-template-columns:1fr;}}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px 14px;
+  }
+  .card h3{font-size:16px;margin-bottom:4px;}
+  .card .hint{font-size:12px;color:var(--muted);margin-bottom:10px;}
+  .chart-box{position:relative;height:230px;}
+  .chart-box.tall{height:270px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);}
+  th{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;background:#faf8f3;}
+  tr:hover td{background:#faf8f2;}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;}
+  .pill.good{background:#e4f3ea;color:var(--good);}
+  .pill.mid{background:#fbeed9;color:var(--amber);}
+  .pill.bad{background:#fbe7e7;color:var(--bad);}
+
+  .insights{list-style:none;margin:0;padding:0;}
+  .insights li{
+    padding:11px 0 11px 30px;border-bottom:1px dashed var(--line);position:relative;font-size:14px;line-height:1.5;
+  }
+  .insights li:last-child{border-bottom:none;}
+  .insights li::before{
+    content:'▸';position:absolute;left:4px;top:11px;color:var(--brand-red);font-weight:700;
+  }
+  .insights li b{color:var(--brand-blue);}
+
+  .section-title{display:flex;align-items:baseline;gap:10px;margin:30px 0 14px;}
+  .section-title h2{font-size:19px;}
+  .section-title span{font-size:12px;color:var(--muted);}
+
+  /* Modal */
+  .overlay{
+    position:fixed;inset:0;background:rgba(20,25,35,.55);display:none;
+    align-items:flex-start;justify-content:center;z-index:50;padding:40px 16px;overflow-y:auto;
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    background:#fff;border-radius:14px;max-width:640px;width:100%;padding:24px 26px 22px;
+    box-shadow:0 20px 60px rgba(0,0,0,.3);
+  }
+  .modal h2{font-size:19px;margin-bottom:4px;}
+  .modal .hint{font-size:12.5px;color:var(--muted);margin-bottom:16px;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;}
+  .form-grid .full{grid-column:1/-1;}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:5px;}
+  input[type=text],input[type=number],input[type=tel],select.field,textarea{
+    width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:#fdfcfa;
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-blue);outline-offset:1px;}
+  fieldset{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:0;}
+  legend{font-size:12px;font-weight:700;color:var(--brand-blue);padding:0 6px;}
+  .radio-row{display:flex;gap:16px;margin-top:2px;}
+  .radio-row label{display:flex;align-items:center;gap:5px;font-weight:500;font-size:13.5px;margin:0;}
+  .rating-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .rating-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .rating-row label{margin:0;font-weight:500;font-size:13px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+  .visit-block{display:none;}
+  .visit-block.show{display:block;}
+  .tabs{display:flex;gap:6px;margin-bottom:16px;}
+  .tab-btn{padding:7px 14px;border-radius:7px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);}
+  .tab-btn.active{background:var(--brand-blue);color:#fff;border-color:var(--brand-blue);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+  .paste-box{width:100%;height:140px;font-family:monospace;font-size:12px;border:1px solid var(--line);border-radius:7px;padding:8px;}
+  .toast{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#fff;padding:11px 20px;border-radius:8px;font-size:13.5px;
+    box-shadow:0 8px 24px rgba(0,0,0,.25); z-index:80; opacity:0; transition:opacity .25s ease;
+    pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+  .empty-note{font-size:13px;color:var(--muted);padding:18px 0;text-align:center;}
+  .footer-note{margin-top:30px;font-size:12px;color:var(--muted);text-align:center;line-height:1.6;}
+  .close-x{background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);line-height:1;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">LA</div>
+    <div>
+      <h1>Lohia Arogya — Survey Intelligence</h1>
+      <p>Awareness Programme Household Survey · 2026</p>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <div class="select-wrap">
+      <select id="locationFilter"></select>
+    </div>
+    <button class="btn btn-ghost" id="openImportBtn">📤 Upload Excel File</button>
+    <button class="btn btn-primary" id="openAddBtn">+ Add Response</button>
+  </div>
+</div>
+
+<main>
+  <p class="tagline">
+    <span>Data updates live as surveyors add households from any clinic location. <b id="locCount">–</b> location(s) tracked · <b id="totalCount">–</b> households surveyed in total.</span>
+    <span><button class="btn btn-outline btn-small" id="exportBtn">Export CSV</button></span>
+  </p>
+
+  <div class="kpi-row" id="kpiRow"></div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Awareness &amp; Conversion Funnel</h3>
+      <div class="hint">Faith in homeopathy → aware of Lohia clinic → aware of ₹10 fee → actually visited</div>
+      <div class="chart-box"><canvas id="funnelChart"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Visitor Experience Ratings</h3>
+      <div class="hint">Average score (1–5), among respondents who have visited</div>
+      <div class="chart-box"><canvas id="ratingChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Location Comparison</h3>
+      <div class="hint">Awareness and visit conversion by clinic location</div>
+      <div class="chart-box tall"><canvas id="locChart"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Key Insights</h3>
+      <div class="hint">Auto-generated from current filter</div>
+      <ul class="insights" id="insightsList"></ul>
+    </div>
+  </div>
+
+  <div class="section-title"><h2>Location Scorecard</h2><span>click a row's location name to filter</span></div>
+  <div class="card" style="padding:0;overflow-x:auto;">
+    <table id="locTable">
+      <thead><tr>
+        <th>Location</th><th class="num">Surveyed</th><th class="num">Faith in Homeopathy</th>
+        <th class="num">Know Clinic</th><th class="num">Know ₹10 Fee</th><th class="num">Visited</th>
+        <th class="num">Avg Rating</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section-title"><h2>Household Suggestions</h2><span id="suggCount"></span></div>
+  <div class="card">
+    <ul class="insights" id="suggList"><li class="empty-note" style="padding-left:0">No free-text suggestions recorded yet for this view.</li></ul>
+  </div>
+
+  <div class="footer-note">
+    Data entered here is stored in shared artifact storage — visible to anyone who opens this dashboard.<br>
+    Built for Lohia Arogya Homeopathic Health Care (Rishabh Kumar Lohia Memorial Trust), Kanpur.
+  </div>
+</main>
+
+<!-- Add Response Modal -->
+<div class="overlay" id="addOverlay">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <h2>Add Survey Response</h2>
+        <p class="hint">Same fields as the paper form (Part A &amp; B). Works for any clinic location — pick an existing one or type a new one.</p>
+      </div>
+      <button class="close-x" data-close="addOverlay">✕</button>
+    </div>
+    <form id="addForm">
+      <div class="form-grid">
+        <div class="full">
+          <label>Clinic Location</label>
+          <input type="text" list="locOptions" id="f_location" placeholder="e.g. Azad Nagar, Vikas Nagar..." required>
+          <datalist id="locOptions"></datalist>
+        </div>
+        <div>
+          <label>Respondent Name</label>
+          <input type="text" id="f_respondent" placeholder="Full name">
+        </div>
+        <div>
+          <label>Mobile No.</label>
+          <input type="tel" id="f_mobile" placeholder="10-digit number">
+        </div>
+        <div>
+          <label>Family Members</label>
+          <input type="number" id="f_family" min="0">
+        </div>
+        <div>
+          <label>Children</label>
+          <input type="number" id="f_children" min="0">
+        </div>
+        <div class="full">
+          <label>Adults</label>
+          <input type="number" id="f_adults" min="0" style="max-width:140px;">
+        </div>
+
+        <div class="full">
+          <fieldset>
+            <legend>Q1 · Faith in homeopathy / consulted before?</legend>
+            <div class="radio-row">
+              <label><input type="radio" name="q1" value="Yes" checked> Yes</label>
+              <label><input type="radio" name="q1" value="No"> No</label>
+            </div>
+          </fieldset>
+        </div>
+        <div>
+          <fieldset>
+            <legend>Q2 · Knows Lohia clinic runs locally?</legend>
+            <div class="radio-row">
+              <label><input type="radio" name="q2" value="Yes"> Yes</label>
+              <label><input type="radio" name="q2" value="No" checked> No</label>
+            </div>
+          </fieldset>
+        </div>
+        <div>
+          <fieldset>
+            <legend>Q3 · Knows ₹10 fee + free medicine?</legend>
+            <div class="radio-row">
+              <label><input type="radio" name="q3" value="Yes"> Yes</label>
+              <label><input type="radio" name="q3" value="No" checked> No</label>
+            </div>
+          </fieldset>
+        </div>
+        <div class="full">
+          <fieldset>
+            <legend>Q4 · Has visited Lohia Arogya Clinic?</legend>
+            <div class="radio-row">
+              <label><input type="radio" name="q4" value="Yes" id="q4yes"> Yes</label>
+              <label><input type="radio" name="q4" value="No" id="q4no" checked> No</label>
+            </div>
+          </fieldset>
+        </div>
+
+        <div class="full visit-block" id="visitBlock">
+          <fieldset>
+            <legend>Q5 · Experience rating (1–5)</legend>
+            <div class="rating-grid">
+              <div class="rating-row"><label>Doctor's Behaviour</label><select class="field" id="r_doctor"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option></select></div>
+              <div class="rating-row"><label>Waiting Time</label><select class="field" id="r_waiting"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option></select></div>
+              <div class="rating-row"><label>Comfort &amp; Satisfaction</label><select class="field" id="r_comfort"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option></select></div>
+              <div class="rating-row"><label>Clinic Cleanliness</label><select class="field" id="r_clean"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option></select></div>
+            </div>
+          </fieldset>
+        </div>
+
+        <div class="full">
+          <label>Suggestions (one per line, optional)</label>
+          <textarea id="f_suggestions" rows="3" placeholder="e.g. Extend evening hours"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" data-close="addOverlay">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Response</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Bulk Import Modal -->
+<div class="overlay" id="importOverlay">
+  <div class="modal" style="max-width:720px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <h2>Add Location Data</h2>
+        <p class="hint">Upload a location's survey Excel file directly — same layout as the paper form / survey template. No manual re-typing needed.</p>
+      </div>
+      <button class="close-x" data-close="importOverlay">✕</button>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="excel">Upload Excel File</button>
+      <button class="tab-btn" data-tab="newloc">Register Empty Location</button>
+      <button class="tab-btn" data-tab="paste">Paste Rows (advanced)</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-excel">
+      <p class="hint">Accepts .xlsx / .xls files with columns like <em>Clinic Location, Respondent Name, Family Members, Q1 Details, Q2 Know LAH Clinic...</em> — headers are matched automatically, so column order doesn't matter.</p>
+      <div id="dropZone" style="border:2px dashed var(--line);border-radius:10px;padding:26px;text-align:center;cursor:pointer;background:#faf8f3;">
+        <div style="font-size:28px;">📊</div>
+        <div style="font-weight:600;margin-top:6px;">Click to choose a file, or drag it here</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">.xlsx or .xls — one sheet of household rows</div>
+        <input type="file" id="excelFile" accept=".xlsx,.xls" style="display:none;">
+      </div>
+      <div id="excelStatus" style="font-size:13px;margin-top:12px;"></div>
+      <div id="excelLocOverrideWrap" style="display:none;margin-top:10px;">
+        <label>This file has no "Clinic Location" column — apply this location name to every row:</label>
+        <input type="text" id="excelLocOverride" placeholder="e.g. Vikas Nagar">
+      </div>
+      <div class="modal-actions">
+        <span id="excelPreviewCount" style="font-size:12px;color:var(--muted);margin-right:auto;align-self:center;"></span>
+        <button type="button" class="btn btn-primary" id="importExcelBtn" disabled>Import Responses</button>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-newloc">
+      <p class="hint">Register a clinic location so it appears in the dropdowns immediately (with zero responses), ready for the "+ Add Response" form.</p>
+      <label>New clinic location name</label>
+      <input type="text" id="newLocName" placeholder="e.g. Vikas Nagar">
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" id="registerLocBtn">Register Location</button>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-paste">
+      <p class="hint">Tab-separated columns, one household per line, in this exact order:<br>
+      <code style="font-size:11px;">Location, Respondent Name, Mobile, Family Members, Children, Adults, Q1(Yes/No), Q2(Yes/No), Q3(Yes/No), Q4(Yes/No), Doctor(1-5), Waiting(1-5), Comfort(1-5), Cleanliness(1-5), Suggestions</code></p>
+      <textarea class="paste-box" id="pasteArea" placeholder="Vikas Nagar	Suresh Kumar	9876543210	5	2	3	Yes	Yes	Yes	Yes	4	5	4	5	More parking"></textarea>
+      <div class="modal-actions">
+        <span id="parsePreview" style="font-size:12px;color:var(--muted);margin-right:auto;align-self:center;"></span>
+        <button type="button" class="btn btn-primary" id="importPasteBtn">Add Rows</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ SEED DATA ============ */
+const SEED_DATA = [{"id": 1, "date": "2026-06-02", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ramesh Pal", "familyMembers": 4.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 2, "date": "2026-06-02", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Gyan Chand", "familyMembers": 7.0, "children": 4.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 3, "date": "2026-06-02", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ashutosh", "familyMembers": 6.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 3.0, "rComfort": 2.0, "rClean": 5.0, "suggestions": []}, {"id": 4, "date": "2026-06-02", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Rakesh Kumar", "familyMembers": 6.0, "children": 3.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 5, "date": "2026-06-02", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Chitransh", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 6, "date": "2026-06-02", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "ganga ram", "familyMembers": 7.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 7, "date": "2026-06-02", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Akshay Pratap", "familyMembers": 5.0, "children": 3.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 8, "date": "2026-06-02", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Mahendra Kumar", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 9, "date": "2026-06-02", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ajay Kumar", "familyMembers": 6.0, "children": 4.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 10, "date": "2026-06-02", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Smarth Kumar Gautam9258377854", "familyMembers": 4.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 3.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 11, "date": "2026-06-03", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Akhil Pal", "familyMembers": 4.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 3.0, "suggestions": []}, {"id": 12, "date": "2026-06-03", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Aryan", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 13, "date": "2026-06-03", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "koshilliya", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 4.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 14, "date": "2026-06-03", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Varun Kumar", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 1.0, "rClean": 5.0, "suggestions": []}, {"id": 15, "date": "2026-06-03", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ashish", "familyMembers": 4.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 16, "date": "2026-06-03", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Rakesh Kumar", "familyMembers": 6.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 1.0, "rWaiting": 5.0, "rComfort": 4.0, "rClean": 5.0, "suggestions": []}, {"id": 17, "date": "2026-06-03", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Sagar", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 18, "date": "2026-06-03", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Nayak", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 2.0, "rWaiting": 1.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 19, "date": "2026-06-03", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "mohd Said", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 20, "date": "2026-06-03", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Mohd Ansari", "familyMembers": 5.0, "children": 3.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 3.0, "rWaiting": 3.0, "rComfort": 2.0, "rClean": 5.0, "suggestions": []}, {"id": 21, "date": "2026-06-04", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "chandan Kanojiya", "familyMembers": 4.0, "children": 1.0, "adults": 2.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 22, "date": "2026-06-04", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Divyansh", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 4.0, "rWaiting": 5.0, "rComfort": 3.0, "rClean": 5.0, "suggestions": []}, {"id": 23, "date": "2026-06-04", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Mohit Verma", "familyMembers": 6.0, "children": 3.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 3.0, "rClean": 5.0, "suggestions": []}, {"id": 24, "date": "2026-06-04", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ashutosh Pandey", "familyMembers": 6.0, "children": 4.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 25, "date": "2026-06-04", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Sumit Kumar", "familyMembers": 4.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 1.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 26, "date": "2026-06-04", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Anand kumar", "familyMembers": 4.0, "children": 1.0, "adults": 2.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 27, "date": "2026-06-04", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Parmeshwr lal", "familyMembers": 7.0, "children": 4.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 28, "date": "2026-06-04", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Brijesh Raajput", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 29, "date": "2026-06-04", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Pawan Kumar", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 30, "date": "2026-06-04", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Chunnilal", "familyMembers": 4.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 31, "date": "2026-06-05", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Laxmi Srivastava", "familyMembers": 7.0, "children": 4.0, "adults": 3.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 32, "date": "2026-06-05", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Aryan", "familyMembers": 6.0, "children": 4.0, "adults": 4.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 33, "date": "2026-06-05", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Gulaab", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 34, "date": "2026-06-05", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ram Naresh", "familyMembers": 4.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 35, "date": "2026-06-05", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Kishan", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 3.0, "rWaiting": 4.0, "rComfort": 5.0, "rClean": 3.0, "suggestions": []}, {"id": 36, "date": "2026-06-05", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ram Singh", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 37, "date": "2026-06-05", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "annu", "familyMembers": 6.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 38, "date": "2026-06-05", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Rama", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 39, "date": "2026-06-05", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ganga Prasad", "familyMembers": 4.0, "children": 1.0, "adults": 2.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 40, "date": "2026-06-05", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "kaika prasad", "familyMembers": 6.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 41, "date": "2026-06-05", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Virendra", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 42, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ramvati", "familyMembers": 5.0, "children": 3.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 43, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "kshoriya", "familyMembers": 7.0, "children": 3.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 44, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Varun Sharma", "familyMembers": 4.0, "children": 2.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 45, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "N.K garg", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 46, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ankita", "familyMembers": 4.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 47, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Geeta", "familyMembers": 6.0, "children": 2.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 48, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Hariwan singh", "familyMembers": 7.0, "children": 3.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 49, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Rajendra Kumar Gupta", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 50, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Raghavanand Saraswati", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 51, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ansh", "familyMembers": 7.0, "children": 3.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 52, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Rajeev Tnadon", "familyMembers": 7.0, "children": 4.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 53, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Rita", "familyMembers": 7.0, "children": 4.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 54, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "N C Chaturvedi", "familyMembers": 6.0, "children": 4.0, "adults": 4.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 55, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Manju", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 56, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ajeet Kumar", "familyMembers": 5.0, "children": 2.0, "adults": 4.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 57, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Rohan Thakur", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 58, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Anil", "familyMembers": 5.0, "children": 2.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 59, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Rohit Singh", "familyMembers": 4.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 1.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 60, "date": "2026-06-06", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Akash Chaudhry", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 61, "date": "2026-06-09", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ramakant", "familyMembers": 4.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 62, "date": "2026-06-09", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Roshan", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 63, "date": "2026-06-09", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Adil", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 1.0, "rWaiting": 5.0, "rComfort": 3.0, "rClean": 5.0, "suggestions": []}, {"id": 64, "date": "2026-06-09", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Vishal Nishad", "familyMembers": 6.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 65, "date": "2026-06-09", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Sangeet", "familyMembers": 5.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 66, "date": "2026-06-09", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Aman Singh", "familyMembers": 4.0, "children": 2.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 67, "date": "2026-06-09", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Arti devi", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 68, "date": "2026-06-09", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ravi Nishad", "familyMembers": 5.0, "children": 2.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 69, "date": "2026-06-09", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Krishna Sonkar", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 70, "date": "2026-06-09", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Deepak Nishad", "familyMembers": 4.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 71, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ramesh Chandra Kashyap", "familyMembers": 4.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 72, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Vigesh", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 73, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Raj Diwakar", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 74, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Jai deep", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 75, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Kamlesh", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 76, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "pramodni", "familyMembers": 6.0, "children": 3.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 77, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "shefali gupta", "familyMembers": 7.0, "children": 4.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 78, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Khsuhi", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 79, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Hari Kishan", "familyMembers": 4.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 80, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Anil Gupta", "familyMembers": 5.0, "children": 1.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 81, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Avdesh", "familyMembers": 5.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 4.0, "rWaiting": 1.0, "rComfort": 2.0, "rClean": 5.0, "suggestions": []}, {"id": 82, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Shubha Saxena", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 83, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Sarthak", "familyMembers": 6.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 3.0, "rClean": 5.0, "suggestions": []}, {"id": 84, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "jaya", "familyMembers": 4.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 85, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Anupam", "familyMembers": 7.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 3.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 2.0, "suggestions": []}, {"id": 86, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Shivam", "familyMembers": 7.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 87, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Anil verma", "familyMembers": 6.0, "children": 4.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 88, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ashok verma", "familyMembers": 4.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 89, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Harshit", "familyMembers": 5.0, "children": 1.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 90, "date": "2026-06-10", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Mohd Alam", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 1.0, "rWaiting": 4.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 91, "date": "2026-06-11", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Anubash Kumar", "familyMembers": 7.0, "children": 4.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 2.0, "suggestions": []}, {"id": 92, "date": "2026-06-11", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ankit kumar", "familyMembers": 5.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 93, "date": "2026-06-11", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Arif", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 94, "date": "2026-06-11", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Kuldeep", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 95, "date": "2026-06-11", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Mohit Kumar", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 96, "date": "2026-06-11", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ankush Kushwaha", "familyMembers": 6.0, "children": 3.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 97, "date": "2026-06-11", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Krishna Gupta", "familyMembers": 6.0, "children": 4.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 3.0, "suggestions": []}, {"id": 98, "date": "2026-06-11", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Atul", "familyMembers": 5.0, "children": 1.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 99, "date": "2026-06-11", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Sunil", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 100, "date": "2026-06-11", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Mohd Fahim", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 1.0, "suggestions": []}, {"id": 101, "date": "2026-06-12", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Jvaved", "familyMembers": 5.0, "children": 2.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 102, "date": "2026-06-12", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Anmol", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 103, "date": "2026-06-12", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Manoj  gupta", "familyMembers": 7.0, "children": 3.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 104, "date": "2026-06-12", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Bnanarsi gupta", "familyMembers": 5.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 4.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 105, "date": "2026-06-12", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Yash mahato", "familyMembers": 5.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 106, "date": "2026-06-12", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Sarvesh", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 107, "date": "2026-06-12", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Sandeep Kumar Gupta", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 108, "date": "2026-06-12", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Deepak Nishad", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 109, "date": "2026-06-12", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Piyush Srivastava", "familyMembers": 6.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 110, "date": "2026-06-12", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Manesh Saita", "familyMembers": 7.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 111, "date": "2026-06-13", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Kallu", "familyMembers": 4.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 112, "date": "2026-06-13", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "KrIshna", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 113, "date": "2026-06-13", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ram Prasad", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 114, "date": "2026-06-13", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ambuj Yadav", "familyMembers": 4.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 115, "date": "2026-06-13", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Kuldeep", "familyMembers": 4.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 116, "date": "2026-06-13", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Abhinav Kumar", "familyMembers": 6.0, "children": 2.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 117, "date": "2026-06-13", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Rani devi", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 118, "date": "2026-06-13", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "raja", "familyMembers": 7.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 119, "date": "2026-06-13", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "pappu", "familyMembers": 5.0, "children": 3.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 4.0, "rComfort": 5.0, "rClean": 2.0, "suggestions": []}, {"id": 120, "date": "2026-06-13", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Akshat", "familyMembers": 5.0, "children": 1.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 121, "date": "2026-06-16", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Kallu", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 122, "date": "2026-06-16", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "ajay kumar", "familyMembers": 5.0, "children": 2.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 123, "date": "2026-06-16", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Radheshyam", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 124, "date": "2026-06-16", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Brijesh Singh", "familyMembers": 4.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 125, "date": "2026-06-16", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Anil Pandey", "familyMembers": 7.0, "children": 4.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 3.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 1.0, "suggestions": []}, {"id": 126, "date": "2026-06-16", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Sunil", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 127, "date": "2026-06-16", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Aniket Gautam", "familyMembers": 7.0, "children": 3.0, "adults": 3.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 128, "date": "2026-06-16", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ankit verma", "familyMembers": 4.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 129, "date": "2026-06-16", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Surendra Kumar", "familyMembers": 7.0, "children": 4.0, "adults": 4.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 130, "date": "2026-06-16", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Manish Kumar", "familyMembers": 4.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 2.0, "suggestions": []}, {"id": 131, "date": "2026-06-17", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Jagdeesh", "familyMembers": 6.0, "children": 2.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 132, "date": "2026-06-17", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Prem Kumar", "familyMembers": 6.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 3.0, "rWaiting": 1.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 133, "date": "2026-06-17", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "jilajeet", "familyMembers": 4.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 134, "date": "2026-06-17", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Subhod kumar", "familyMembers": 7.0, "children": 4.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 135, "date": "2026-06-17", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Sujata sen", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 136, "date": "2026-06-17", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Sagar singh", "familyMembers": 7.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 3.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 1.0, "suggestions": []}, {"id": 137, "date": "2026-06-17", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Manish Khan", "familyMembers": 6.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 138, "date": "2026-06-17", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "A shish Chandra", "familyMembers": 4.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 139, "date": "2026-06-17", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Girja shankar shukla", "familyMembers": 7.0, "children": 3.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 140, "date": "2026-06-17", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Mohit", "familyMembers": 6.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 4.0, "rWaiting": 2.0, "rComfort": 3.0, "rClean": 5.0, "suggestions": []}, {"id": 141, "date": "2026-06-18", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Mukesh", "familyMembers": 7.0, "children": 4.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 142, "date": "2026-06-18", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Kamla kaushal", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 143, "date": "2026-06-18", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Anmol", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 144, "date": "2026-06-18", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Neha gupta", "familyMembers": 5.0, "children": 3.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 145, "date": "2026-06-18", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "harshit gupta", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 146, "date": "2026-06-18", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Lata devi", "familyMembers": 4.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 147, "date": "2026-06-18", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "devesh", "familyMembers": 7.0, "children": 4.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 148, "date": "2026-06-18", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Nandlal", "familyMembers": 4.0, "children": 2.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 149, "date": "2026-06-18", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Pankaj shukla", "familyMembers": 7.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 150, "date": "2026-06-18", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Satish", "familyMembers": 4.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 151, "date": "2026-06-19", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ranjeet", "familyMembers": 5.0, "children": 3.0, "adults": 2.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 152, "date": "2026-06-19", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Sanjay nishad", "familyMembers": 7.0, "children": 4.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 153, "date": "2026-06-19", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ashoka yadav", "familyMembers": 5.0, "children": 3.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 154, "date": "2026-06-19", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ranjendra kumar", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 155, "date": "2026-06-19", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "omprakash chand", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 156, "date": "2026-06-19", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Aman singh", "familyMembers": 6.0, "children": 4.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 157, "date": "2026-06-19", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "kallan", "familyMembers": 5.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 158, "date": "2026-06-19", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ramesh Chandra", "familyMembers": 5.0, "children": 2.0, "adults": 2.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 159, "date": "2026-06-19", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Sarvesh singh", "familyMembers": 4.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 160, "date": "2026-06-19", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "pavan yadav", "familyMembers": 7.0, "children": 3.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 4.0, "rComfort": 2.0, "rClean": 5.0, "suggestions": []}, {"id": 161, "date": "2026-06-20", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Bittu khan", "familyMembers": 7.0, "children": 4.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 162, "date": "2026-06-20", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "ajay kumar", "familyMembers": 7.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 163, "date": "2026-06-20", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "jayendra srivastava", "familyMembers": 5.0, "children": 3.0, "adults": 3.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 164, "date": "2026-06-20", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "mohd rubin", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 165, "date": "2026-06-20", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "shaurya", "familyMembers": 5.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 166, "date": "2026-06-20", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "kamlesh", "familyMembers": 5.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 167, "date": "2026-06-20", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Bhagwan Singh", "familyMembers": 5.0, "children": 3.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 168, "date": "2026-06-20", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "ankit", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 169, "date": "2026-06-20", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Vijay nishad", "familyMembers": 7.0, "children": 4.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 170, "date": "2026-06-20", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ashish kushwaha", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 171, "date": "2026-06-20", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "shailendra gupta", "familyMembers": 4.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 172, "date": "2026-06-23", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "dileep", "familyMembers": 4.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 173, "date": "2026-06-23", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "trilok singh", "familyMembers": 7.0, "children": 4.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 174, "date": "2026-06-23", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Neeta gupta", "familyMembers": 4.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 175, "date": "2026-06-23", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "aman kumar", "familyMembers": 6.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 176, "date": "2026-06-23", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "amar", "familyMembers": 6.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 177, "date": "2026-06-23", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "kunal", "familyMembers": 5.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 178, "date": "2026-06-23", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "sunny patel", "familyMembers": 4.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 179, "date": "2026-06-23", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "suraj", "familyMembers": 6.0, "children": 2.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 180, "date": "2026-06-23", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Manoj  gupta", "familyMembers": 4.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 181, "date": "2026-06-23", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "harsh", "familyMembers": 5.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 182, "date": "2026-06-24", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "palak ram", "familyMembers": 5.0, "children": 3.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 3.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 183, "date": "2026-06-24", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ankur jain", "familyMembers": 4.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 2.0, "rClean": 5.0, "suggestions": []}, {"id": 184, "date": "2026-06-24", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Rajesh kumr sahu", "familyMembers": 7.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 185, "date": "2026-06-24", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "krishna nishad", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 186, "date": "2026-06-24", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Sandhana divedi", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 187, "date": "2026-06-24", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "suraj", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 188, "date": "2026-06-24", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "satym gupta", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 189, "date": "2026-06-24", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "sanjay singh", "familyMembers": 7.0, "children": 3.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 190, "date": "2026-06-24", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "haarsh", "familyMembers": 6.0, "children": 4.0, "adults": 3.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 191, "date": "2026-06-24", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Madhuri", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 192, "date": "2026-06-25", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Ram shri nishad", "familyMembers": 7.0, "children": 4.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 193, "date": "2026-06-25", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Sagar singh", "familyMembers": 6.0, "children": 4.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 194, "date": "2026-06-25", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "vijay shankar", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 1.0, "rComfort": 5.0, "rClean": 4.0, "suggestions": []}, {"id": 195, "date": "2026-06-25", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "laxmi mishra", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 196, "date": "2026-06-25", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "durgesh mishra", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 197, "date": "2026-06-25", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "hari lal", "familyMembers": 5.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 198, "date": "2026-06-25", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Adesh kumarv", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 199, "date": "2026-06-25", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "shubash", "familyMembers": 7.0, "children": 3.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 1.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 200, "date": "2026-06-25", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "meera", "familyMembers": 6.0, "children": 2.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 201, "date": "2026-06-25", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "kanishk", "familyMembers": 5.0, "children": 2.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 202, "date": "2026-06-26", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "vidush srivastava", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 203, "date": "2026-06-26", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "shashank", "familyMembers": 7.0, "children": 4.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 204, "date": "2026-06-26", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "krishna mittal", "familyMembers": 5.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 1.0, "suggestions": []}, {"id": 205, "date": "2026-06-26", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "prakhar chandra", "familyMembers": 4.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 206, "date": "2026-06-26", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Samiksha", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 207, "date": "2026-06-26", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Jhanvi singh", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 208, "date": "2026-06-26", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "ishan gupta", "familyMembers": 5.0, "children": 1.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 209, "date": "2026-06-26", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "amit kappor", "familyMembers": 7.0, "children": 4.0, "adults": 4.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 210, "date": "2026-06-26", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Himanshu singh", "familyMembers": 4.0, "children": 2.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 211, "date": "2026-06-26", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "vimla devi", "familyMembers": 6.0, "children": 3.0, "adults": 4.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 212, "date": "2026-06-27", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "rinku", "familyMembers": 7.0, "children": 4.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 4.0, "rWaiting": 4.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 213, "date": "2026-06-27", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "savita", "familyMembers": 7.0, "children": 4.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 214, "date": "2026-06-27", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "aarti singh", "familyMembers": 4.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 215, "date": "2026-06-27", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "shikha sahu", "familyMembers": 5.0, "children": 2.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 216, "date": "2026-06-27", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "manish kumar", "familyMembers": 6.0, "children": 4.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 217, "date": "2026-06-27", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "guddu pal", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "No", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 218, "date": "2026-06-27", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "jai deep", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 219, "date": "2026-06-27", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "ram kumar", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 220, "date": "2026-06-27", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "babaita agarwal", "familyMembers": 5.0, "children": 3.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 3.0, "rComfort": 5.0, "rClean": 2.0, "suggestions": []}, {"id": 221, "date": "2026-06-27", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "archana mishra", "familyMembers": 3.0, "children": 1.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 222, "date": "2026-06-28", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "arpita dixit", "familyMembers": 6.0, "children": 4.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 223, "date": "2026-06-28", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "manju dua", "familyMembers": 6.0, "children": 4.0, "adults": 4.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 224, "date": "2026-06-28", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "neelam chawla", "familyMembers": 2.0, "children": 0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 225, "date": "2026-06-28", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "rashmi", "familyMembers": 6.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 5.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 226, "date": "2026-06-28", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "rekha", "familyMembers": 4.0, "children": 2.0, "adults": 2.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 1.0, "rWaiting": 5.0, "rComfort": 2.0, "rClean": 5.0, "suggestions": []}, {"id": 227, "date": "2026-06-28", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "nirmala gupta", "familyMembers": 6.0, "children": 3.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "Yes", "q3KnowFee": "Yes", "q4Visited": "Yes", "rDoctor": 5.0, "rWaiting": 4.0, "rComfort": 5.0, "rClean": 5.0, "suggestions": []}, {"id": 228, "date": "2026-06-28", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "renu chawla", "familyMembers": 4.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 229, "date": "2026-06-28", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "sangeeta gupta", "familyMembers": 4.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}, {"id": 230, "date": "2026-06-28", "surveyor": "Lakshya Sahu", "location": "Azad Nagar", "respondent": "Archana gupta", "familyMembers": 4.0, "children": 1.0, "adults": 3.0, "q1Faith": "Yes", "q2KnowClinic": "No", "q3KnowFee": "No", "q4Visited": "No", "rDoctor": null, "rWaiting": null, "rComfort": null, "rClean": null, "suggestions": []}];
+const STORAGE_KEY = 'lah_survey_records_v1';
+const REGISTERED_LOCS_KEY = 'lah_registered_locations_v1';
+
+let records = [];
+let registeredLocs = [];
+let charts = {};
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+async function loadData(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, true);
+    records = res && res.value ? JSON.parse(res.value) : null;
+  }catch(e){ records = null; }
+  if(!records){
+    records = SEED_DATA.slice();
+    try{ await window.storage.set(STORAGE_KEY, JSON.stringify(records), true); }catch(e){}
+  }
+  try{
+    const res2 = await window.storage.get(REGISTERED_LOCS_KEY, true);
+    registeredLocs = res2 && res2.value ? JSON.parse(res2.value) : [];
+  }catch(e){ registeredLocs = []; }
+}
+
+async function saveRecords(){
+  try{ await window.storage.set(STORAGE_KEY, JSON.stringify(records), true); }
+  catch(e){ toast('Could not save — data kept in this session only.'); }
+}
+async function saveRegisteredLocs(){
+  try{ await window.storage.set(REGISTERED_LOCS_KEY, JSON.stringify(registeredLocs), true); }
+  catch(e){}
+}
+
+function allLocations(){
+  const set = new Set(registeredLocs);
+  records.forEach(r=>set.add(r.location));
+  return Array.from(set).sort();
+}
+
+/* ============ STATS ============ */
+function pct(n, d){ return d>0 ? Math.round((n/d)*1000)/10 : 0; }
+function computeStats(recs){
+  const total = recs.length;
+  const yes = f => recs.filter(r=>r[f]==='Yes').length;
+  const q1 = yes('q1Faith'), q2 = yes('q2KnowClinic'), q3 = yes('q3KnowFee'), q4 = yes('q4Visited');
+  const visited = recs.filter(r=>r.q4Visited==='Yes');
+  const avg = key => {
+    const vals = visited.map(r=>r[key]).filter(v=>typeof v === 'number');
+    return vals.length ? Math.round((vals.reduce((a,b)=>a+b,0)/vals.length)*10)/10 : null;
+  };
+  const rDoctor = avg('rDoctor'), rWaiting = avg('rWaiting'), rComfort = avg('rComfort'), rClean = avg('rClean');
+  const ratingVals = [rDoctor,rWaiting,rComfort,rClean].filter(v=>v!==null);
+  const overallRating = ratingVals.length ? Math.round((ratingVals.reduce((a,b)=>a+b,0)/ratingVals.length)*10)/10 : null;
+  const avgFamily = total ? Math.round((recs.reduce((a,r)=>a+(r.familyMembers||0),0)/total)*10)/10 : 0;
+  return {
+    total, q1, q2, q3, q4,
+    q1Pct: pct(q1,total), q2Pct: pct(q2,total), q3Pct: pct(q3,total), q4Pct: pct(q4,total),
+    visitedCount: visited.length,
+    rDoctor, rWaiting, rComfort, rClean, overallRating, avgFamily
+  };
+}
+
+function ratingBadge(pctVal){
+  if(pctVal>=60) return 'good';
+  if(pctVal>=30) return 'mid';
+  return 'bad';
+}
+
+/* ============ RENDER ============ */
+function currentFilter(){ return document.getElementById('locationFilter').value; }
+
+function filteredRecords(){
+  const loc = currentFilter();
+  return loc === '__all__' ? records : records.filter(r=>r.location===loc);
+}
+
+function renderLocationSelect(){
+  const sel = document.getElementById('locationFilter');
+  const prev = sel.value || '__all__';
+  const locs = allLocations();
+  sel.innerHTML = `<option value="__all__">All Locations (${locs.length})</option>` +
+    locs.map(l=>`<option value="${l}">${l}</option>`).join('');
+  sel.value = locs.includes(prev) ? prev : '__all__';
+
+  const dl = document.getElementById('locOptions');
+  dl.innerHTML = locs.map(l=>`<option value="${l}">`).join('');
+}
+
+function renderKPIs(stats, loc){
+  const row = document.getElementById('kpiRow');
+  const cards = [
+    {label:'Households Surveyed', value: stats.total, sub: loc==='__all__'? 'across all locations' : 'in '+loc, accent:'var(--brand-blue)'},
+    {label:'Faith in Homeopathy', value: stats.q1Pct+'%', sub: stats.q1+' of '+stats.total+' households', accent:'var(--teal)'},
+    {label:'Know Lohia Clinic Exists', value: stats.q2Pct+'%', sub: stats.q2+' aware locally', accent:'var(--amber)'},
+    {label:'Actually Visited', value: stats.q4Pct+'%', sub: stats.visitedCount+' households', accent:'var(--brand-red)'},
+    {label:'Avg Experience Rating', value: stats.overallRating!==null ? stats.overallRating+' / 5' : '—', sub: 'among visitors', accent:'var(--good)'}
+  ];
+  row.innerHTML = cards.map(c=>`
+    <div class="kpi" style="--accent:${c.accent}">
+      <div class="label">${c.label}</div>
+      <div class="value">${c.value}</div>
+      <div class="sub">${c.sub}</div>
+    </div>`).join('');
+}
+
+function renderFunnelChart(stats){
+  const ctx = document.getElementById('funnelChart');
+  const data = {
+    labels:['Faith in Homeopathy','Know Clinic Exists','Know ₹10 Fee','Visited Clinic'],
+    datasets:[{
+      data:[stats.q1Pct, stats.q2Pct, stats.q3Pct, stats.q4Pct],
+      backgroundColor:['#1f6f6b','#c98a2c','#1c3f66','#b9202e'],
+      borderRadius:6, maxBarThickness:46
+    }]
+  };
+  if(charts.funnel) charts.funnel.destroy();
+  charts.funnel = new Chart(ctx, {
+    type:'bar', data,
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.parsed.x+'%'}}},
+      scales:{x:{min:0,max:100,ticks:{callback:v=>v+'%'}}, y:{ticks:{font:{size:12}}}}
+    }
+  });
+}
+
+function renderRatingChart(stats){
+  const ctx = document.getElementById('ratingChart');
+  const vals = [stats.rDoctor, stats.rWaiting, stats.rComfort, stats.rClean];
+  if(charts.rating) charts.rating.destroy();
+  if(stats.visitedCount === 0){
+    ctx.getContext('2d').clearRect(0,0,ctx.width,ctx.height);
+    return;
+  }
+  charts.rating = new Chart(ctx, {
+    type:'radar',
+    data:{
+      labels:["Doctor's Behaviour",'Waiting Time','Comfort & Satisfaction','Cleanliness'],
+      datasets:[{
+        label:'Avg rating',
+        data: vals.map(v=>v===null?0:v),
+        backgroundColor:'rgba(185,32,46,0.15)',
+        borderColor:'#b9202e', pointBackgroundColor:'#b9202e'
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{ r:{ min:0, max:5, ticks:{stepSize:1} } },
+      plugins:{legend:{display:false}}
+    }
+  });
+}
+
+function renderLocChart(){
+  const locs = allLocations();
+  const stats = locs.map(l=>computeStats(records.filter(r=>r.location===l)));
+  const ctx = document.getElementById('locChart');
+  if(charts.loc) charts.loc.destroy();
+  if(locs.length===0){ return; }
+  charts.loc = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: locs,
+      datasets:[
+        {label:'Know Clinic %', data: stats.map(s=>s.q2Pct), backgroundColor:'#c98a2c', borderRadius:4},
+        {label:'Visited %', data: stats.map(s=>s.q4Pct), backgroundColor:'#b9202e', borderRadius:4}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom'}},
+      scales:{ x:{ticks:{autoSkip:false, maxRotation:30, minRotation:0, font:{size:11}}}, y:{min:0,max:100,ticks:{callback:v=>v+'%'}} }
+    }
+  });
+}
+
+function renderInsights(stats, loc){
+  const list = document.getElementById('insightsList');
+  const items = [];
+  if(stats.total===0){
+    items.push('No survey responses recorded yet for this selection.');
+  } else {
+    const gap = Math.round((stats.q1Pct - stats.q2Pct)*10)/10;
+    if(gap > 5){
+      items.push(`<b>${gap} point awareness gap:</b> ${stats.q1Pct}% already trust homeopathy, but only ${stats.q2Pct}% know a Lohia clinic exists nearby — the biggest lever is local visibility, not persuasion.`);
+    } else if(stats.total>0) {
+      items.push(`Faith in homeopathy (${stats.q1Pct}%) and awareness of the local clinic (${stats.q2Pct}%) are closely matched — outreach is keeping pace with existing trust.`);
+    }
+    const dropAwareToVisit = stats.q2>0 ? pct(stats.q4, stats.q2) : 0;
+    if(stats.q2>0){
+      items.push(`Of households that <b>know</b> the clinic exists, ${dropAwareToVisit}% have actually visited — ${dropAwareToVisit<50 ? 'a conversion gap worth investigating (fee/timing/trust barriers).' : 'a healthy conversion rate.'}`);
+    }
+    const feeGap = stats.q2 - stats.q3;
+    if(feeGap !== 0){
+      items.push(`${feeGap>0? feeGap+' households know the clinic exists but not the ₹10 fee — worth clarifying in future visits.' : 'Fee awareness matches or exceeds clinic awareness, suggesting word-of-mouth about pricing travels well.'}`);
+    }
+    if(stats.overallRating!==null){
+      const dims = [["Doctor's Behaviour",stats.rDoctor],['Waiting Time',stats.rWaiting],['Comfort & Satisfaction',stats.rComfort],['Cleanliness',stats.rClean]].filter(d=>d[1]!==null);
+      if(dims.length){
+        const best = dims.reduce((a,b)=>a[1]>=b[1]?a:b);
+        const worst = dims.reduce((a,b)=>a[1]<=b[1]?a:b);
+        items.push(`Among visitors, <b>${best[0]}</b> rates highest (${best[1]}/5) while <b>${worst[0]}</b> rates lowest (${worst[1]}/5) — a natural focus area for service improvement.`);
+      }
+    } else {
+      items.push('No visitor experience ratings yet — once households start visiting, ratings will populate here.');
+    }
+    if(loc==='__all__' && allLocations().length>1){
+      const locs = allLocations();
+      const perLoc = locs.map(l=>({l, s:computeStats(records.filter(r=>r.location===l))})).filter(x=>x.s.total>0);
+      if(perLoc.length>1){
+        const bestLoc = perLoc.reduce((a,b)=>a.s.q2Pct>=b.s.q2Pct?a:b);
+        const worstLoc = perLoc.reduce((a,b)=>a.s.q2Pct<=b.s.q2Pct?a:b);
+        items.push(`<b>${bestLoc.l}</b> has the highest clinic awareness (${bestLoc.s.q2Pct}%); <b>${worstLoc.l}</b> the lowest (${worstLoc.s.q2Pct}%) — prioritise awareness drives there.`);
+      }
+    }
+  }
+  list.innerHTML = items.map(i=>`<li>${i}</li>`).join('');
+}
+
+function renderLocTable(){
+  const locs = allLocations();
+  const tbody = document.querySelector('#locTable tbody');
+  if(locs.length===0){ tbody.innerHTML = `<tr><td colspan="7" class="empty-note">No locations yet — add a response or register a location to begin.</td></tr>`; return; }
+  tbody.innerHTML = locs.map(l=>{
+    const s = computeStats(records.filter(r=>r.location===l));
+    return `<tr>
+      <td><a href="#" class="loc-link" data-loc="${l}" style="color:var(--brand-blue);font-weight:600;text-decoration:none;">${l}</a></td>
+      <td class="num">${s.total}</td>
+      <td class="num"><span class="pill ${ratingBadge(s.q1Pct)}">${s.q1Pct}%</span></td>
+      <td class="num"><span class="pill ${ratingBadge(s.q2Pct)}">${s.q2Pct}%</span></td>
+      <td class="num"><span class="pill ${ratingBadge(s.q3Pct)}">${s.q3Pct}%</span></td>
+      <td class="num"><span class="pill ${ratingBadge(s.q4Pct)}">${s.q4Pct}%</span></td>
+      <td class="num">${s.overallRating!==null? s.overallRating+' / 5' : '—'}</td>
+    </tr>`;
+  }).join('');
+  tbody.querySelectorAll('.loc-link').forEach(a=>{
+    a.addEventListener('click', e=>{
+      e.preventDefault();
+      document.getElementById('locationFilter').value = a.dataset.loc;
+      renderAll();
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+  });
+}
+
+function renderSuggestions(){
+  const recs = filteredRecords();
+  const all = [];
+  recs.forEach(r=> (r.suggestions||[]).forEach(s=>{ if(s && s.trim()) all.push(s.trim()); }));
+  document.getElementById('suggCount').textContent = all.length ? all.length+' recorded' : '';
+  const list = document.getElementById('suggList');
+  if(all.length===0){
+    list.innerHTML = '<li class="empty-note" style="padding-left:0">No free-text suggestions recorded yet for this view.</li>';
+    return;
+  }
+  const counts = {};
+  all.forEach(s=>{ const k = s.toLowerCase(); counts[k] = counts[k] || {text:s,count:0}; counts[k].count++; });
+  const sorted = Object.values(counts).sort((a,b)=>b.count-a.count);
+  list.innerHTML = sorted.map(s=>`<li>${s.text}${s.count>1? ` <span class="pill mid">×${s.count}</span>`:''}</li>`).join('');
+}
+
+function renderAll(){
+  renderLocationSelect();
+  const loc = currentFilter();
+  const recs = filteredRecords();
+  const stats = computeStats(recs);
+  document.getElementById('locCount').textContent = allLocations().length;
+  document.getElementById('totalCount').textContent = records.length;
+  renderKPIs(stats, loc);
+  renderFunnelChart(stats);
+  renderRatingChart(stats);
+  renderLocChart();
+  renderInsights(stats, loc);
+  renderLocTable();
+  renderSuggestions();
+}
+
+/* ============ MODALS ============ */
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', ()=>closeModal(b.dataset.close)));
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('show'); }));
+
+document.getElementById('openAddBtn').addEventListener('click', ()=>{
+  const loc = currentFilter();
+  if(loc !== '__all__') document.getElementById('f_location').value = loc;
+  openModal('addOverlay');
+});
+document.getElementById('openImportBtn').addEventListener('click', ()=>{
+  openModal('importOverlay');
+  document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+  document.querySelector('.tab-btn[data-tab="excel"]').classList.add('active');
+  document.getElementById('tab-excel').classList.add('active');
+});
+
+document.querySelectorAll('input[name=q4]').forEach(r=>r.addEventListener('change', e=>{
+  document.getElementById('visitBlock').classList.toggle('show', e.target.value==='Yes');
+}));
+
+document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click', ()=>{
+  document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+}));
+
+document.getElementById('addForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const loc = document.getElementById('f_location').value.trim();
+  if(!loc){ toast('Please enter a clinic location.'); return; }
+  const suggRaw = document.getElementById('f_suggestions').value.trim();
+  const suggestions = suggRaw ? suggRaw.split('\n').map(s=>s.trim()).filter(Boolean).slice(0,5) : [];
+  const q4 = document.querySelector('input[name=q4]:checked').value;
+  const getRating = id => { const v = document.getElementById(id).value; return v? Number(v): null; };
+  const rec = {
+    id: Date.now(),
+    date: new Date().toISOString().slice(0,10),
+    surveyor: '',
+    location: loc,
+    respondent: document.getElementById('f_respondent').value.trim(),
+    familyMembers: Number(document.getElementById('f_family').value)||0,
+    children: Number(document.getElementById('f_children').value)||0,
+    adults: Number(document.getElementById('f_adults').value)||0,
+    q1Faith: document.querySelector('input[name=q1]:checked').value,
+    q2KnowClinic: document.querySelector('input[name=q2]:checked').value,
+    q3KnowFee: document.querySelector('input[name=q3]:checked').value,
+    q4Visited: q4,
+    rDoctor: q4==='Yes'? getRating('r_doctor') : null,
+    rWaiting: q4==='Yes'? getRating('r_waiting') : null,
+    rComfort: q4==='Yes'? getRating('r_comfort') : null,
+    rClean: q4==='Yes'? getRating('r_clean') : null,
+    suggestions
+  };
+  records.push(rec);
+  await saveRecords();
+  if(!allLocations().includes(loc) && !registeredLocs.includes(loc)){ /* now covered since in records */ }
+  toast('Response saved.');
+  e.target.reset();
+  document.getElementById('visitBlock').classList.remove('show');
+  closeModal('addOverlay');
+  document.getElementById('locationFilter').value = loc;
+  renderAll();
+});
+
+document.getElementById('registerLocBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('newLocName').value.trim();
+  if(!name){ toast('Enter a location name first.'); return; }
+  if(!registeredLocs.includes(name)) registeredLocs.push(name);
+  await saveRegisteredLocs();
+  document.getElementById('newLocName').value = '';
+  toast(`"${name}" registered. It now appears in the dropdown.`);
+  renderAll();
+  closeModal('importOverlay');
+});
+
+function parsePasteRows(){
+  const raw = document.getElementById('pasteArea').value;
+  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  const parsed = [];
+  lines.forEach(line=>{
+    const cols = line.split('\t');
+    if(cols.length < 10) return;
+    const yn = v => (v||'').trim().toLowerCase()==='yes' ? 'Yes' : 'No';
+    const num = v => { const n = Number(v); return isNaN(n)? null : n; };
+    parsed.push({
+      id: Date.now()+Math.random(),
+      date: new Date().toISOString().slice(0,10),
+      surveyor:'', location: (cols[0]||'').trim(),
+      respondent: (cols[1]||'').trim(), familyMembers: num(cols[3])||0, children: num(cols[4])||0, adults: num(cols[5])||0,
+      q1Faith: yn(cols[6]), q2KnowClinic: yn(cols[7]), q3KnowFee: yn(cols[8]), q4Visited: yn(cols[9]),
+      rDoctor: num(cols[10]), rWaiting: num(cols[11]), rComfort: num(cols[12]), rClean: num(cols[13]),
+      suggestions: cols[14] ? [cols[14].trim()] : []
+    });
+  });
+  return parsed;
+}
+
+document.getElementById('pasteArea').addEventListener('input', ()=>{
+  const n = parsePasteRows().length;
+  document.getElementById('parsePreview').textContent = n ? `${n} row(s) recognised` : '';
+});
+
+document.getElementById('importPasteBtn').addEventListener('click', async ()=>{
+  const parsed = parsePasteRows();
+  if(parsed.length===0){ toast('No valid rows found — check the tab-separated format.'); return; }
+  records.push(...parsed);
+  await saveRecords();
+  document.getElementById('pasteArea').value = '';
+  document.getElementById('parsePreview').textContent = '';
+  toast(`${parsed.length} response(s) added.`);
+  closeModal('importOverlay');
+  renderAll();
+});
+
+/* ============ EXCEL UPLOAD ============ */
+const FIELD_CANDIDATES = {
+  location: ['cliniclocation','location','clinic'],
+  respondent: ['respondentname','name','respondent'],
+  mobile: ['respondentmobile','mobile','mobileno','phone'],
+  family: ['familymembers','members','familysize'],
+  children: ['children','kids'],
+  adults: ['adults'],
+  q1: ['q1details','q1faith','q1'],
+  q2: ['q2knowlahclinic','q2knowclinic','q2'],
+  q3: ['q3knowfeefreemedicine','q3knowfee','q3'],
+  q4: ['q4visitedlahclinic','q4visited','q4'],
+  doctor: ['doctorbehaviour15','doctorbehaviour','doctor'],
+  waiting: ['waitingtime15','waitingtime','waiting'],
+  comfort: ['comfortsatisfaction15','comfortsatisfaction','comfort'],
+  clean: ['cleanliness15','cleanliness','clean'],
+  sugg1: ['suggestion1'], sugg2: ['suggestion2'], sugg3: ['suggestion3'], sugg4: ['suggestion4'], sugg5: ['suggestion5']
+};
+function normHeader(h){ return String(h).toLowerCase().replace(/[^a-z0-9]/g,''); }
+function buildKeyMap(rowObj){
+  const norm2actual = {};
+  Object.keys(rowObj).forEach(k=>{ norm2actual[normHeader(k)] = k; });
+  const resolved = {};
+  Object.entries(FIELD_CANDIDATES).forEach(([field, candidates])=>{
+    for(const c of candidates){ if(norm2actual[c] !== undefined){ resolved[field] = norm2actual[c]; break; } }
+  });
+  return resolved;
+}
+function isBlank(v){ return v===undefined || v===null || String(v).trim()===''; }
+function ynExcel(v){ if(isBlank(v)) return 'No'; return String(v).trim().toLowerCase()==='yes' ? 'Yes' : 'No'; }
+function numExcel(v){ if(isBlank(v)) return null; const n = Number(v); return isNaN(n) ? null : n; }
+
+let excelParsedRows = [];
+let excelMissingLocation = false;
+
+function excelRowToRecord(rowObj, keyMap, locOverride){
+  const g = f => keyMap[f] !== undefined ? rowObj[keyMap[f]] : undefined;
+  let loc = g('location');
+  loc = isBlank(loc) ? '' : String(loc).trim();
+  if(!loc && locOverride) loc = locOverride;
+  const suggestions = ['sugg1','sugg2','sugg3','sugg4','sugg5'].map(f=>g(f)).filter(v=>!isBlank(v)).map(v=>String(v).trim());
+  return {
+    id: Date.now()+Math.random(),
+    date: new Date().toISOString().slice(0,10),
+    surveyor:'', location: loc,
+    respondent: isBlank(g('respondent')) ? '' : String(g('respondent')).trim(),
+    familyMembers: numExcel(g('family'))||0, children: numExcel(g('children'))||0, adults: numExcel(g('adults'))||0,
+    q1Faith: ynExcel(g('q1')), q2KnowClinic: ynExcel(g('q2')), q3KnowFee: ynExcel(g('q3')), q4Visited: ynExcel(g('q4')),
+    rDoctor: numExcel(g('doctor')), rWaiting: numExcel(g('waiting')), rComfort: numExcel(g('comfort')), rClean: numExcel(g('clean')),
+    suggestions
+  };
+}
+
+function isMeaningfulRow(rowObj, keyMap){
+  const g = f => keyMap[f] !== undefined ? rowObj[keyMap[f]] : undefined;
+  return !isBlank(g('respondent')) || !isBlank(g('location')) || !isBlank(g('q1')) || !isBlank(g('q2'));
+}
+
+function updateExcelUI(){
+  const statusEl = document.getElementById('excelStatus');
+  const countEl = document.getElementById('excelPreviewCount');
+  const importBtn = document.getElementById('importExcelBtn');
+  const overrideWrap = document.getElementById('excelLocOverrideWrap');
+  if(excelParsedRows.length===0){
+    statusEl.textContent = '';
+    countEl.textContent = '';
+    importBtn.disabled = true;
+    overrideWrap.style.display = 'none';
+    return;
+  }
+  const locs = Array.from(new Set(excelParsedRows.map(r=>r.location).filter(Boolean)));
+  excelMissingLocation = excelParsedRows.some(r=>!r.location);
+  overrideWrap.style.display = excelMissingLocation ? 'block' : 'none';
+  statusEl.innerHTML = `<span class="pill good">Parsed</span> ${excelParsedRows.length} household row(s)` +
+    (locs.length ? ` for <b>${locs.join(', ')}</b>` : '');
+  countEl.textContent = `${excelParsedRows.length} row(s) ready to import`;
+  const overrideVal = document.getElementById('excelLocOverride').value.trim();
+  importBtn.disabled = excelMissingLocation && !overrideVal;
+}
+
+function handleExcelFile(file){
+  if(!file) return;
+  const statusEl = document.getElementById('excelStatus');
+  statusEl.innerHTML = 'Reading file…';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
+      const sheetName = wb.SheetNames[0];
+      const sheet = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+      if(rows.length===0){ statusEl.textContent = 'No rows found in that file.'; excelParsedRows=[]; updateExcelUI(); return; }
+      const keyMap = buildKeyMap(rows[0]);
+      const parsed = rows.filter(r=>isMeaningfulRow(r, keyMap)).map(r=>excelRowToRecord(r, keyMap, ''));
+      excelParsedRows = parsed;
+      if(parsed.length===0){ statusEl.textContent = 'Could not recognise any household rows — check the column headers match the survey template.'; }
+      updateExcelUI();
+    }catch(err){
+      statusEl.textContent = 'Could not read that file — please make sure it is a valid .xlsx or .xls file.';
+      excelParsedRows = [];
+      updateExcelUI();
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+const dropZone = document.getElementById('dropZone');
+const excelFileInput = document.getElementById('excelFile');
+dropZone.addEventListener('click', ()=>excelFileInput.click());
+excelFileInput.addEventListener('change', e=>{ if(e.target.files[0]) handleExcelFile(e.target.files[0]); });
+dropZone.addEventListener('dragover', e=>{ e.preventDefault(); dropZone.style.background = '#f0ece0'; });
+dropZone.addEventListener('dragleave', ()=>{ dropZone.style.background = '#faf8f3'; });
+dropZone.addEventListener('drop', e=>{
+  e.preventDefault(); dropZone.style.background = '#faf8f3';
+  const file = e.dataTransfer.files[0];
+  if(file) handleExcelFile(file);
+});
+document.getElementById('excelLocOverride').addEventListener('input', updateExcelUI);
+
+document.getElementById('importExcelBtn').addEventListener('click', async ()=>{
+  if(excelParsedRows.length===0) return;
+  const overrideVal = document.getElementById('excelLocOverride').value.trim();
+  const finalRows = excelParsedRows.map(r=>({...r, location: r.location || overrideVal}));
+  if(finalRows.some(r=>!r.location)){ toast('Please provide a location name for rows missing one.'); return; }
+  records.push(...finalRows);
+  await saveRecords();
+  toast(`${finalRows.length} response(s) imported from Excel.`);
+  excelParsedRows = [];
+  excelFileInput.value = '';
+  document.getElementById('excelLocOverride').value = '';
+  updateExcelUI();
+  closeModal('importOverlay');
+  document.getElementById('locationFilter').value = finalRows[0].location;
+  renderAll();
+});
+
+document.getElementById('locationFilter').addEventListener('change', renderAll);
+
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const recs = filteredRecords();
+  const headers = ['id','date','location','respondent','familyMembers','children','adults','q1Faith','q2KnowClinic','q3KnowFee','q4Visited','rDoctor','rWaiting','rComfort','rClean','suggestions'];
+  const rows = [headers.join(',')].concat(recs.map(r=>headers.map(h=>{
+    let v = r[h];
+    if(Array.isArray(v)) v = v.join(' | ');
+    if(v===null||v===undefined) v='';
+    v = String(v).replace(/"/g,'""');
+    return /[,"\n]/.test(v) ? `"${v}"` : v;
+  }).join(',')));
+  const blob = new Blob([rows.join('\n')], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'lohia_arogya_survey_export.csv'; a.click();
+  URL.revokeObjectURL(url);
+});
+
+/* ============ INIT ============ */
+(async function init(){
+  await loadData();
+  renderAll();
+})();
+</script>
+</body>
+</html>
